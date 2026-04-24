@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0">Results</h4>
+  <a href="{{ url_for('export_csv', account=account_filter, keyword=keyword_filter, date_from=date_from, date_to=date_to) }}"
+     class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-download me-1"></i>Export CSV
+  </a>
+</div>
+
+{# ── Stats ── #}
+<div class="row g-3 mb-4">
+  <div class="col-sm-4">
+    <div class="card text-center py-3">
+      <div class="h2 fw-bold mb-0 text-primary">{{ stats.total_tweets }}</div>
+      <div class="text-muted small">Total Matched Tweets</div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="card text-center py-3">
+      <div class="h2 fw-bold mb-0 text-primary">{{ stats.accounts_with_matches }}</div>
+      <div class="text-muted small">Accounts with Matches</div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="card text-center py-3">
+      <div class="h2 fw-bold mb-0 text-primary">{{ stats.total_keywords }}</div>
+      <div class="text-muted small">Keywords Tracked</div>
+    </div>
+  </div>
+</div>
+
+{# ── Filters ── #}
+<div class="card mb-4">
+  <div class="card-body py-3">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-sm-3">
+        <label class="form-label small text-muted mb-1">Account</label>
+        <select name="account" class="form-select form-select-sm">
+          <option value="">All accounts</option>
+          {% for a in accounts %}
+            <option value="{{ a.username }}" {% if account_filter == a.username %}selected{% endif %}>
+              @{{ a.username }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-3">
+        <label class="form-label small text-muted mb-1">Keyword</label>
+        <select name="keyword" class="form-select form-select-sm">
+          <option value="">All keywords</option>
+          {% for k in keywords %}
+            <option value="{{ k.word }}" {% if keyword_filter == k.word %}selected{% endif %}>
+              {{ k.word }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-2">
+        <label class="form-label small text-muted mb-1">From date</label>
+        <input type="date" name="date_from" class="form-control form-control-sm" value="{{ date_from }}">
+      </div>
+      <div class="col-sm-2">
+        <label class="form-label small text-muted mb-1">To date</label>
+        <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to }}">
+      </div>
+      <div class="col-sm-1">
+        <button type="submit" class="btn btn-primary btn-sm w-100">Filter</button>
+      </div>
+      <div class="col-sm-1">
+        <a href="{{ url_for('results') }}" class="btn btn-outline-secondary btn-sm w-100">Clear</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Tweet Table ── #}
+<div class="card">
+  <div class="card-body p-0">
+    {% if tweets %}
+      <p class="text-muted small px-3 pt-3 mb-0">{{ tweets|length }} tweet(s) shown</p>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th style="width:120px">Account</th>
+              <th>Tweet</th>
+              <th style="width:180px">Matched Keywords</th>
+              <th style="width:140px">Date</th>
+              <th style="width:50px"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in tweets %}
+            <tr>
+              <td class="text-nowrap">
+                <a href="https://twitter.com/{{ t.username }}" target="_blank"
+                   class="text-decoration-none fw-medium">
+                  @{{ t.username }}
+                </a>
+              </td>
+              <td class="tweet-cell">{{ t.content }}</td>
+              <td>
+                {% for kw in t.matched_keywords.split(', ') %}
+                  <span class="kw-badge mb-1">{{ kw }}</span>
+                {% endfor %}
+              </td>
+              <td class="text-muted small text-nowrap">{{ t.tweeted_at[:16] }}</td>
+              <td>
+                <a href="{{ t.tweet_url }}" target="_blank"
+                   class="btn btn-sm btn-outline-secondary px-2 py-1">
+                  <i class="bi bi-box-arrow-up-right"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-inbox fs-1 d-block mb-2 opacity-40"></i>
+        <p class="mb-0">No tweets found matching your criteria.</p>
+        {% if not (account_filter or keyword_filter or date_from or date_to) %}
+          <p class="small mt-1">Run a scrape from the <a href="{{ url_for('config') }}">Config</a> page to get started.</p>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

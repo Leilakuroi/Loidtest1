@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+{% block content %}
+<h4 class="fw-bold mb-4">Configuration</h4>
+
+<div class="row g-4">
+
+  {# ── Scraping Account ── #}
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex align-items-center gap-2 py-3">
+        <i class="bi bi-person-lock text-primary"></i>
+        <strong>Scraping Account</strong>
+        <span class="ms-auto">
+          {% if credentials %}
+            <span class="badge bg-success">
+              <i class="bi bi-check-circle me-1"></i>@{{ credentials.username }}
+            </span>
+          {% else %}
+            <span class="badge bg-warning text-dark">Not configured</span>
+          {% endif %}
+        </span>
+      </div>
+      <div class="card-body">
+
+        {# Cookie instructions #}
+        <div class="alert alert-info border-0 py-2 mb-3" style="background:#eef6ff">
+          <p class="mb-1 small fw-semibold"><i class="bi bi-info-circle me-1"></i>How to get your cookies (takes ~30 seconds):</p>
+          <ol class="mb-0 small ps-3">
+            <li>Open <strong>x.com</strong> in Chrome and make sure you're logged in as @{{ credentials.username if credentials else 'your account' }}</li>
+            <li>Press <kbd>F12</kbd> to open DevTools → go to the <strong>Application</strong> tab</li>
+            <li>In the left panel expand <strong>Cookies</strong> → click <strong>https://x.com</strong></li>
+            <li>Find <code>auth_token</code> — copy its <strong>Value</strong></li>
+            <li>Find <code>ct0</code> — copy its <strong>Value</strong></li>
+            <li>Paste both below and click Save</li>
+          </ol>
+        </div>
+
+        <form method="POST" action="{{ url_for('set_credentials') }}">
+          <div class="row g-2 align-items-end">
+            <div class="col-sm-2">
+              <label class="form-label small text-muted mb-1">Username</label>
+              <div class="input-group">
+                <span class="input-group-text">@</span>
+                <input type="text" name="username" class="form-control" placeholder="username"
+                       value="{{ credentials.username if credentials else '' }}" required>
+              </div>
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label small text-muted mb-1"><code>auth_token</code> cookie value</label>
+              <input type="password" name="auth_token" class="form-control font-monospace"
+                     placeholder="Paste auth_token value here" required>
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label small text-muted mb-1"><code>ct0</code> cookie value</label>
+              <input type="text" name="ct0" class="form-control font-monospace"
+                     placeholder="Paste ct0 value here" required>
+            </div>
+            <div class="col-sm-2">
+              <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-check-lg me-1"></i>Save & Verify
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {# ── Monitored Accounts ── #}
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center gap-2 py-3">
+        <i class="bi bi-people-fill text-primary"></i>
+        <strong>Monitored Accounts</strong>
+        <span class="badge bg-secondary ms-auto">{{ account_count }}/30</span>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('add_account') }}" class="mb-3">
+          <div class="input-group">
+            <span class="input-group-text">@</span>
+            <input type="text" name="username" class="form-control" placeholder="twitter_handle"
+                   {% if account_count >= 30 %}disabled{% endif %}>
+            <button class="btn btn-outline-primary" type="submit"
+                    {% if account_count >= 30 %}disabled{% endif %}>
+              <i class="bi bi-plus-lg"></i> Add
+            </button>
+          </div>
+        </form>
+
+        {% if accounts %}
+          <ul class="list-group list-group-flush">
+            {% for a in accounts %}
+            <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+              <span class="text-muted small"><i class="bi bi-at"></i></span>
+              <span class="flex-grow-1 ms-1">{{ a.username }}</span>
+              {% if a.twitter_id %}
+                <span class="badge bg-light text-muted border me-2" style="font-size:.7rem">ID cached</span>
+              {% endif %}
+              <form method="POST" action="{{ url_for('remove_account') }}" class="d-inline">
+                <input type="hidden" name="id" value="{{ a.id }}">
+                <button type="submit" class="btn btn-link btn-sm text-danger p-0 border-0"
+                        onclick="return confirm('Remove @{{ a.username }}?')">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </form>
+            </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-center text-muted small mt-3">No accounts yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ── Keywords ── #}
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center gap-2 py-3">
+        <i class="bi bi-tags-fill text-primary"></i>
+        <strong>Keywords</strong>
+        <span class="badge bg-secondary ms-auto">{{ keywords|length }}</span>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('add_keyword') }}" class="mb-3">
+          <div class="input-group">
+            <input type="text" name="word" class="form-control" placeholder="keyword or phrase">
+            <button class="btn btn-outline-primary" type="submit">
+              <i class="bi bi-plus-lg"></i> Add
+            </button>
+          </div>
+        </form>
+
+        {% if keywords %}
+          <div class="d-flex flex-wrap gap-2 mt-2">
+            {% for kw in keywords %}
+              <span class="kw-badge">
+                {{ kw.word }}
+                <form method="POST" action="{{ url_for('remove_keyword') }}" class="d-inline m-0">
+                  <input type="hidden" name="id" value="{{ kw.id }}">
+                  <button type="submit" class="btn p-0 border-0 bg-transparent lh-1"
+                          style="color:inherit;font-size:.75rem;line-height:1"
+                          onclick="return confirm('Remove keyword &quot;{{ kw.word }}&quot;?')">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </form>
+              </span>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-center text-muted small mt-3">No keywords yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ── Schedule & Run ── #}
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex align-items-center gap-2 py-3">
+        <i class="bi bi-clock-fill text-primary"></i>
+        <strong>Schedule & Status</strong>
+      </div>
+      <div class="card-body">
+        <div class="row align-items-center g-3">
+          <div class="col-sm-3">
+            <div class="text-muted small mb-1">Runs daily at</div>
+            <strong>08:00 AM</strong>
+          </div>
+          <div class="col-sm-3">
+            <div class="text-muted small mb-1">Next run</div>
+            <strong>{{ next_run.strftime('%Y-%m-%d %H:%M') if next_run else '—' }}</strong>
+          </div>
+          <div class="col-sm-3">
+            <div class="text-muted small mb-1">Last run</div>
+            {% if last_run %}
+              <strong class="d-block">{{ last_run.started_at[:16] }}</strong>
+              {% if last_run.status == 'success' %}
+                <span class="badge bg-success">{{ last_run.tweets_found }} new tweet(s)</span>
+              {% elif last_run.status == 'error' %}
+                <span class="badge bg-danger" title="{{ last_run.error_message }}">Error</span>
+              {% elif last_run.status == 'skipped' %}
+                <span class="badge bg-secondary">Skipped</span>
+              {% else %}
+                <span class="badge bg-warning text-dark">Running…</span>
+              {% endif %}
+            {% else %}
+              <span class="text-muted">Never run</span>
+            {% endif %}
+          </div>
+          <div class="col-sm-3">
+            <form method="POST" action="{{ url_for('manual_run') }}">
+              <button type="submit" class="btn btn-success w-100"
+                      {% if not credentials %}disabled title="Configure scraping account first"{% endif %}>
+                <i class="bi bi-play-fill me-1"></i>Run Now
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {% if last_run and last_run.status == 'error' and last_run.error_message %}
+          <div class="alert alert-danger mt-3 mb-0 py-2 small">
+            <strong>Error detail:</strong> {{ last_run.error_message }}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
